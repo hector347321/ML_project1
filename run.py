@@ -144,10 +144,6 @@ def fit_transform_train_test(X_tr_raw, X_te_raw, **prep_opts):
     return transform(X_tr, params), transform(X_te, params), params
 
 
-# ----------------------------------------------------------------------------
-# 4. MODELE : regression logistique regularisee L2 avec poids de classe,
-#    descente de gradient acceleree (Nesterov)
-# ----------------------------------------------------------------------------
 def lipschitz(tx, sw, lambda_, n_iter=30):
     """Estime la constante de Lipschitz du gradient par iteration de puissance."""
     rng = np.random.RandomState(0)
@@ -171,10 +167,10 @@ def weighted_reg_logistic(y01, tx, lambda_, pos_weight, max_iters=MAX_ITERS):
     w = np.zeros(tx.shape[1], dtype=np.float32)
     w_prev = w.copy()
     for k in range(1, max_iters + 1):
-        z = w + (k - 1) / (k + 2) * (w - w_prev)  # pas de Nesterov
+        z = w + (k - 1) / (k + 2) * (w - w_prev) 
         grad = tx.T @ (sw * (sigmoid(tx @ z) - y01)) / N
         reg = 2 * lambda_ * z
-        reg[0] = 0.0  # biais non regularise
+        reg[0] = 0.0  
         w_prev = w
         w = (z - gamma * (grad + reg)).astype(np.float32)
     return w
@@ -184,9 +180,6 @@ def predict_proba(tx, w):
     return sigmoid(tx @ w)
 
 
-# ----------------------------------------------------------------------------
-# 5. METRIQUES + VALIDATION CROISEE STRATIFIEE
-# ----------------------------------------------------------------------------
 def f1_score(y_true01, y_pred01):
     tp = np.sum((y_pred01 == 1) & (y_true01 == 1))
     fp = np.sum((y_pred01 == 1) & (y_true01 == 0))
@@ -259,26 +252,22 @@ def ablation(y01, X_raw):
         f1, f1_std, thr, acc = cross_validate(y01, X_raw, BEST_LAMBDA, BEST_POS_WEIGHT, **opts)
         print(f"{name:<44}| {f1:.4f} ± {f1_std:.4f} | {thr:.2f}  | {acc:.4f}")
 
-
-# ----------------------------------------------------------------------------
-# MAIN
-# ----------------------------------------------------------------------------
 if __name__ == "__main__":
     t0 = time.time()
 
-    # --- chargement
+    # chargement des datas
     x_train, x_test, y_train, train_ids, test_ids = load_csv_data(DATA_PATH, sub_sample=QUICK)
     feature_names = load_feature_names(DATA_PATH)
     y01 = ((y_train + 1) / 2).astype(int)
     print(f"x_train {x_train.shape} | x_test {x_test.shape} | positifs : {y01.mean():.4f}")
 
-    # --- comparaison des variantes de preprocessing (pas de soumission)
+    # comparaison des variantes de preprocessing
     if ABLATION:
         ablation(y01, x_train)
         print(f"\nTemps total : {time.time() - t0:.0f}s")
         raise SystemExit
 
-    # --- hyperparametres : recherche par CV, ou valeurs deja trouvees
+    # recherche des hyperparametres par CV
     if TUNE:
         lambda_, pos_weight, threshold = tune(y01, x_train)
     else:
@@ -286,7 +275,7 @@ if __name__ == "__main__":
     print(f"\nHyperparametres utilises : lambda={lambda_}, pos_weight={pos_weight}, "
           f"seuil={threshold:.4f}")
 
-    # --- nettoyage + preprocessing (appris sur le train, applique au train et au test)
+    # nettoyage + preprocessing (appris sur le train, applique au train et au test)
     tx_train, tx_test, params = fit_transform_train_test(x_train, x_test)
     n_onehot = sum(len(lv) for lv in params["levels"].values())
     print(f"Apres preprocessing : train {tx_train.shape} | test {tx_test.shape} "
@@ -295,7 +284,7 @@ if __name__ == "__main__":
     assert tx_train.shape[1] == tx_test.shape[1]
     assert not np.isnan(tx_train).any() and not np.isnan(tx_test).any()
 
-    # --- entrainement final sur tout le train
+    # entrainement final sur tout le train
     w = weighted_reg_logistic(y01, tx_train, lambda_, pos_weight)
 
     # features les plus importantes (colonnes numeriques standardisees uniquement)
@@ -306,7 +295,7 @@ if __name__ == "__main__":
     for j in top:
         print(f"  {feature_names[params['keep'][j]]:<15} {w[1 + j]:+.3f}")
 
-    # --- prediction test
+    # prediction test
     probs_test = predict_proba(tx_test, w)
     y_pred = np.where(probs_test >= threshold, 1, -1)
     print(f"\nPart de +1 predits sur le test : {np.mean(y_pred == 1):.3f}")
