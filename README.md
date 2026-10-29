@@ -10,8 +10,8 @@ Nesterov-accelerated gradient descent. Everything is implemented with NumPy only
 
 | | F1 | Accuracy |
 |---|---|---|
-| 4-fold stratified cross-validation | `<CV F1>` | `<CV accuracy>` |
-| AIcrowd test set | `<AIcrowd F1>` | `<AIcrowd accuracy>` |
+| 4-fold stratified cross-validation | `0.428` | `0.872` |
+| AIcrowd test set | `0.438` | `0.874` |
 
 ## Repository structure
 
