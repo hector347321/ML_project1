@@ -8,7 +8,7 @@ from implementations import sigmoid
 
 DATA_PATH = "data/"
 OUTPUT_FILE = "submission.csv"
-TUNE = True             # recherche d'hyperparametres par CV
+TUNE = False             # recherche d'hyperparametres par CV
 ABLATION = False         # comparation des variantes de preprocessing par CV 
 QUICK = False            # True = sous-echantillon (1 ligne sur 50) pour deboguer
 SEED = 42
